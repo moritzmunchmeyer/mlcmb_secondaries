@@ -14,7 +14,7 @@ import networks
 import losses
 import trainingdata
 
-#run e.g.: python train.py ~/mlcmb/mlcmb/config_master.ini
+#run e.g.: python train.py ~/mlcmb_secondaries/mlcmb/config_master.ini
 
 
 def run_training(configpath):

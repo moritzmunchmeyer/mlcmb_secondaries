@@ -9,7 +9,7 @@ import utilities
 import networks
 
 
-#run e.g.: python eval.py ~/mlcmb/mlcmb/config_master.ini
+#run e.g.: python eval.py ~/mlcmb_secondaries/mlcmb/config_master.ini
 
 
  
@@ -37,33 +37,28 @@ def eval_training(configpath):
     
     data_test = np.load(params.datapath+"/datasets/dataset_test_"+str(datasetid)+".npy")
 
-    if params.wf_mode=="T":
-        images_test = data_test[:,:,:,[1,2]]
-    if params.wf_mode=="QU":
-        images_test = data_test[:,:,:,[10,11,2]]    
+    if params.wf_mode=="vrad_kszgal":
+        images_test = data_test[:,:,:,[0,1]]   
 
     #pad the images
     images_test = utilities.periodic_padding(images_test,npad)
 
     #renormalize images before analysing
     images_test[...,0] *= params.map_rescale_factor
-    if params.wf_mode=="QU": 
-        images_test[...,1] *= params.map_rescale_factor
+    images_test[...,1] *= params.map_rescale_factor
 
     #analyse images
     result = model.predict(images_test, batch_size=params.batch_size)
 
     #ell filter the maps
-    result[:,:,:,0] = utilities.ell_filter_maps(result[:,:,:,0], params.nx, params.dx, params.lmax, lmin=2)
+    #result[:,:,:,0] = utilities.ell_filter_maps(result[:,:,:,0], params.nx, params.dx, params.lmax, lmin=2)
+    #result[:,:,:,1] = utilities.ell_filter_maps(result[:,:,:,1], params.nx, params.dx, params.lmax, lmin=2)
     #undo renormalisation
-    result[:,:,:,0] = (result[:,:,:,0])/params.map_rescale_factor
-
-    if params.wf_mode=="QU":    
-        result[:,:,:,1] = utilities.ell_filter_maps(result[:,:,:,1], params.nx, params.dx, params.lmax, lmin=2)
-        result[:,:,:,1] = (result[:,:,:,1])/params.map_rescale_factor    
+    result[:,:,:,0] = (result[:,:,:,0])/params.map_rescale_factor 
+    result[:,:,:,1] = (result[:,:,:,1])/params.map_rescale_factor    
 
     #save
-    fname = params.folder_path_run+"dataset_wf_test_"+str(datasetid)+"_results.npy"
+    fname = params.folder_path_run+"dataset_test_"+str(datasetid)+"_results.npy"
     print ("saving results to", fname)
     np.save(fname,result)   
 
