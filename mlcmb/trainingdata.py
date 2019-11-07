@@ -22,11 +22,8 @@ def make_dataset(configpath):
     nsims_valid = params.nsims_valid
     nsims_test = params.nsims_test
     nsims      = nsims_train+nsims_valid+nsims_test
-    wf_trainvalid = False #whether or not also to wiener filter training and validation data
 
 
-    multigrid  = True #False                                 # use a multigrid preconditioner.
-    eps_min    = params.eps_min #1.e-6 #1.e-4
     lmax       = params.lmax                                 # maximum multipole.
     nside = params.nx
     nx         = params.nx
@@ -38,13 +35,10 @@ def make_dataset(configpath):
 
     cl_len     = ql.spec.get_camb_lensedcl(lmax=lmax)  # cmb theory spectra.
 
-    #TEST: set bb and ee to same power
-    #cl_len.clbb[:] = cl_len.clee[:]
-
     mask = params.mask
 
-    rescale_factor =  1000. #1000. #internal rescaling. undone in the end. seems to be needed to get correct results in some configurations
-
+    rescale_factor =  1. #internal rescaling. undone in the end. s
+    
     #RESCALE
     nlev_t *= rescale_factor
     nlev_p *= rescale_factor
@@ -55,25 +49,16 @@ def make_dataset(configpath):
     nltt       = (nlev_t*np.pi/180./60.)**2 / bl**2
     nlee       = (nlev_p*np.pi/180./60.)**2 / bl**2
 
-    # diagonal approximation of filter.
-    flt        = 1.0/(nltt[0:lmax+1] + cl_len.cltt[0:lmax+1]); flt[0:2] = 0.0
-    fle        = 1.0/(nlee[0:lmax+1] + cl_len.clee[0:lmax+1]); fle[0:2] = 0.0
-    flb        = 1.0/(nlee[0:lmax+1] + cl_len.clbb[0:lmax+1]); flb[0:2] = 0.0
-
-    pix        = ql.maps.pix(nx, dx)
-
-    c = ql.spec.clmat_teb(cl_len)
-    
-    
     #make a TFrecord for training set and valid set, but not for test set
-    filename_train = params.datapath+"datasets/dataset_wf_train_"+str(datasetid)+".tfrecords"
-    filename_valid = params.datapath+"datasets/dataset_wf_valid_"+str(datasetid)+".tfrecords"
+    filename_train = params.datapath+"datasets/dataset_train_"+str(datasetid)+".tfrecords"
+    filename_valid = params.datapath+"datasets/dataset_valid_"+str(datasetid)+".tfrecords"
     print('Writing', filename_train,filename_valid)
 
     def _bytes_feature_image(image):
         value = tf.compat.as_bytes(image.tostring())
         return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
+    
     dataset_test = np.zeros( (nsims_test,nside,nside,16) ) 
 
     with tf.python_io.TFRecordWriter(filename_train) as writer_train, tf.python_io.TFRecordWriter(filename_valid) as writer_valid:
@@ -257,136 +242,9 @@ def tfrecord_parse_function(proto,npad,params):
             label = parsed_features['tsky']
             return image, label
         
-        if params.loss_mode == 'J3':
-            image = tf.concat([parsed_features['tobs_pad'],parsed_features['mask_pad']],axis=-1)
-            label = parsed_features['tobs']
-            return image, label       
-        
-        if params.loss_mode == 'J4':
-            image = tf.concat([parsed_features['tobs_pad'],parsed_features['mask_pad']],axis=-1)
-            label = tf.concat([parsed_features['tobs'],parsed_features['tsky']],axis=-1)
-            return image, label    
-
-    if params.wf_mode == "QU":
-        # define your tfrecord again. Remember that you saved your image as a string.
-        keys_to_features = {'qsky': tf.FixedLenFeature([], tf.string),
-                            'qobs': tf.FixedLenFeature([], tf.string),
-                            'usky': tf.FixedLenFeature([], tf.string),
-                            'uobs': tf.FixedLenFeature([], tf.string),
-                            'mask': tf.FixedLenFeature([], tf.string)}
-
-        # Load one example
-        parsed_features = tf.parse_single_example(proto, keys_to_features)
-
-        # Turn your saved image string into an array
-        parsed_features['qsky'] = tf.decode_raw(parsed_features['qsky'], tf.float64)*params.map_rescale_factor
-        parsed_features['qobs'] = tf.decode_raw(parsed_features['qobs'], tf.float64)*params.map_rescale_factor
-        parsed_features['usky'] = tf.decode_raw(parsed_features['usky'], tf.float64)*params.map_rescale_factor
-        parsed_features['uobs'] = tf.decode_raw(parsed_features['uobs'], tf.float64)*params.map_rescale_factor
-        parsed_features['mask'] = tf.decode_raw(parsed_features['mask'], tf.float64)
-        
-        #reshape to original form
-        parsed_features['qsky'] = tf.reshape(parsed_features['qsky'], [params.nx, params.nx, 1])
-        parsed_features['qobs'] = tf.reshape(parsed_features['qobs'], [params.nx, params.nx, 1])
-        parsed_features['usky'] = tf.reshape(parsed_features['usky'], [params.nx, params.nx, 1])
-        parsed_features['uobs'] = tf.reshape(parsed_features['uobs'], [params.nx, params.nx, 1])
-        parsed_features['mask'] = tf.reshape(parsed_features['mask'], [params.nx, params.nx, 1])
-        
-        #pad
-        _padfunc = utilities.periodic_padding
-        parsed_features['qobs_pad'] = tf.py_func(_padfunc, [parsed_features['qobs'],npad], tf.float64 )
-        parsed_features['qsky_pad'] = tf.py_func(_padfunc, [parsed_features['qsky'],npad], tf.float64 )
-        parsed_features['uobs_pad'] = tf.py_func(_padfunc, [parsed_features['uobs'],npad], tf.float64 )
-        parsed_features['usky_pad'] = tf.py_func(_padfunc, [parsed_features['usky'],npad], tf.float64 )        
-        parsed_features['mask_pad'] = tf.py_func(_padfunc, [parsed_features['mask'],npad], tf.float64 )
-
-#         if params.loss_mode == 'J1':
-#             image = tf.concat([parsed_features['qobs_pad'],parsed_features['uobs_pad'],parsed_features['mask_pad']],axis=-1)
-#             label = tf.concat([parsed_features['qwf'],parsed_features['uwf']],axis=-1)
-#             return image, label        
-        
-        if params.loss_mode == 'J2':
-            image = tf.concat([parsed_features['qobs_pad'],parsed_features['uobs_pad'],parsed_features['mask_pad']],axis=-1)
-            label = tf.concat([parsed_features['qsky'],parsed_features['usky']],axis=-1)
-            return image, label
-        
-        if params.loss_mode == 'J3':
-            image = tf.concat([parsed_features['qobs_pad'],parsed_features['uobs_pad'],parsed_features['mask_pad']],axis=-1)
-            label = label = tf.concat([parsed_features['qobs'],parsed_features['uobs']],axis=-1)
-            return image, label    
-        
-        if params.loss_mode == 'J4':
-            image = tf.concat([parsed_features['qobs_pad'],parsed_features['uobs_pad'],parsed_features['mask_pad']],axis=-1)
-            label = tf.concat([parsed_features['qobs'],parsed_features['uobs'],parsed_features['qsky'],parsed_features['usky']],axis=-1)
-            return image, label           
-
-
         
         
-        
-        
-        
-        
-
-##################### online feeder (not used so far since too slow)
-
-class Quicklens_data_feeder():
-    
-    def __init__(self,npad,params):
-        self.params = params
-        self.pix = ql.maps.pix(self.params.nx, params.dx)
-        self.cl_len = ql.spec.get_camb_lensedcl(lmax=params.lmax)  # cmb theory spectra.
-        self.bl = ql.spec.bl(fwhm_arcmin=1., lmax=params.lmax) # instrumental beam transfer function.
-        self.npad = npad
-        self.mask = params.mask
-        self.mask_pad = utilities.periodic_padding(self.mask,self.npad)
-
-    def get_wiener_data(self):
-
-        # simulate input sky
-        teb_sky  = ql.sims.tebfft(self.pix, self.cl_len)
-        tqu_sky  = teb_sky.get_tqu()
-
-        # simulate observed sky
-        teb_obs  = ql.spec.blmat_teb(self.bl) * teb_sky
-        tqu_obs  = teb_obs.get_tqu() + ql.sims.tqumap_homog_noise( self.pix, params.nlev_t, params.nlev_p )
-
-        if params.wf_mode=="T": 
-            #images: t_obs, mask
-            #labels: t_obs            
-            images = np.zeros( (self.params.nx,self.params.nx,2), dtype=np.float32)
-            labels = np.zeros( (self.params.nx,self.params.nx,1), dtype=np.float32)
-            
-            #TODO
-        
-        if params.wf_mode=="E":         
-            images = np.zeros( (self.params.nx+self.npad,self.params.nx+self.npad,3), dtype=np.float32)
-            labels = np.zeros( (self.params.nx+self.npad,self.params.nx+self.npad,2), dtype=np.float32)
-            
-            qobs = self.mask*tqu_obs.qmap
-            uobs = self.mask*tqu_obs.umap
-        
-            #pad the images
-            qobs = utilities.periodic_padding(qobs,self.npad)
-            uobs = utilities.periodic_padding(uobs,self.npad) 
-    
-            #rescale the maps
-            qobs *= params.map_rescale_factor_pol
-            uobs *= params.map_rescale_factor_pol
-        
-            images[:,:,0] = qobs
-            images[:,:,1] = uobs
-            images[:,:,2] = self.mask_pad
-            labels[:,:,0] = qobs
-            labels[:,:,1] = uobs
-                
-        yield images,labels
-        
-        
-        
-        
-        
-        
+       
  
 def main():
     configpath=sys.argv[1]

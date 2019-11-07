@@ -41,7 +41,7 @@ class Parameters():
         self.noise_pix_t = self.nlev_t**2. / (self.dx**2 * rad2arcmin**2)
         self.noise_pix_pol = self.nlev_p**2. / (self.dx**2 * rad2arcmin**2)
 
-        self.wf_mode = Config.get("Training", "wf_mode") #currently T or QU
+        self.estimator_mode = Config.get("Training", "estimator_mode") #currently T or QU
 
         self.loss_mode = Config.get("Training", "loss_mode") #J2 J3 J4
 
@@ -74,12 +74,12 @@ class Parameters():
         self.network_actifunc = Config.get("NeuralNetwork", "actifunc")  
         
         #unmutable:
-        if self.wf_mode=="T":
-            self.wf_signal_type = 'cl_tt'
+        if self.estimator_mode=="T":
+            self.estimator_signal_type = 'cl_tt'
             self.map_rescale_factor = self.map_rescale_factor_t
             self.noise_pix = self.noise_pix_t
-        if self.wf_mode=="QU":
-            self.wf_signal_type = 'cl_ee'
+        if self.estimator_mode=="QU":
+            self.estimator_signal_type = 'cl_ee'
             self.map_rescale_factor = self.map_rescale_factor_pol
             self.noise_pix = self.noise_pix_pol    
 

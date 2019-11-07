@@ -19,12 +19,9 @@ def eval_training(configpath):
 
     datasetid = params.datasetid    
     
-    if params.wf_mode=="T":
+    if params.estimator_mode=="vrad_kszgal":
         channels_in = 2 #2
         channels_out = 1
-    if params.wf_mode=="QU":
-        channels_in = 3 #2
-        channels_out = 2  
         
     npad = params.npad
     img_shape = (params.imgsizepix+2*npad, params.imgsizepix+2*npad, channels_in)
@@ -38,7 +35,7 @@ def eval_training(configpath):
     print ("loading and evaluating model", save_model_path)
     model.load_weights(save_model_path)    
     
-    data_test = np.load(params.datapath+"/datasets/dataset_wf_test_"+str(datasetid)+".npy")
+    data_test = np.load(params.datapath+"/datasets/dataset_test_"+str(datasetid)+".npy")
 
     if params.wf_mode=="T":
         images_test = data_test[:,:,:,[1,2]]

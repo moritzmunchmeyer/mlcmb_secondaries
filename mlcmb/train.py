@@ -17,7 +17,6 @@ import trainingdata
 #run e.g.: python train.py ~/mlcmb/mlcmb/config_master.ini
 
 
-
 def run_training(configpath):
     
     params = config.Parameters(configpath)
@@ -27,13 +26,9 @@ def run_training(configpath):
 
     datasetid = params.datasetid
     
-    if params.wf_mode=="T":
+    if params.estimator_mode=="vrad_kszgal":
         channels_in = 2 #2
         channels_out = 1
-
-    if params.wf_mode=="QU":
-        channels_in = 3 #2
-        channels_out = 2    
 
     npad = params.npad 
     img_shape = (params.imgsizepix+2*npad, params.imgsizepix+2*npad, channels_in)
@@ -52,39 +47,21 @@ def run_training(configpath):
 
     ################### NETWORK
     
-    wienernet = networks.WienerNet(params)
-    inputs,outputs = getattr(wienernet,params.network)(img_shape,channels_out) 
+    estimatornet = networks.estimatorNet(params)
+    inputs,outputs = getattr(estimatornet,params.network)(img_shape,channels_out) 
     
     lossfunctions = losses.Lossfunctions(params)
     
-    if params.loss_mode == "J2":
-        #lossfunc = lossfunctions.mean_squared_error
-        #lossfunc = lossfunctions.loss_wiener_J2
-        #lossfunc = lossfunctions.loss_pixelMSE_ellfiltered
-        lossfunc = lossfunctions.loss_pixelMSE_unfiltered
-        lossfuncname = 'loss_pixelMSE_unfiltered' #'loss_pixelMSE_ellfiltered' 'loss_wiener_J2' #needed to load the model
-
-    if params.loss_mode == "J3":
-        #lossfunc = lossfunctions.loss_wiener_J3_wfweighting
-        #lossfuncname = 'loss_wiener_J3_wfweighting'   
-        lossfunc = lossfunctions.loss_wiener_J3
-        lossfuncname = 'loss_wiener_J3'    
-        #lossfunc = lossfunctions.realspace_loss_noisediag
-        #lossfuncname = 'realspace_loss_noisediag'
-
-    if params.loss_mode == "J4":  
-        lossfunc = lossfunctions.loss_wiener_J4
-        lossfuncname = 'loss_wiener_J4'  
-
+    if params.loss_mode == "mse":
+        lossfunc = lossfunctions.mean_squared_error
+        lossfuncname = 'loss_pixelMSE_unfiltered' 
         
     model = models.Model(inputs=[inputs], outputs=[outputs])
-    #optim = optimizers.RMSprop(learning_rate=1e-3)
     if params.optimizer=='Adam':
         optim = optimizers.Adam(lr=params.learning_rate) #https://www.tensorflow.org/api_docs/python/tf/keras/optimizers/Adam
     model.compile(optimizer=optim, loss=lossfunc) #, metrics=['mean_squared_error']
     model.summary()  
     
-    #cp = tf.keras.callbacks.ModelCheckpoint(filepath=save_model_path, monitor='val_loss' ,save_best_only=True, verbose=1)
     cp = tf.keras.callbacks.ModelCheckpoint(filepath=save_model_path, monitor='val_loss', save_weights_only=True ,save_best_only=True, verbose=1)  
     callback_csv = callbacks.CSVLogger(params.folder_path_run+'training_history_log.csv', append=True)
     #https://stackoverflow.com/questions/50127527/how-to-save-training-history-on-every-epoch-in-keras
@@ -102,8 +79,8 @@ def run_training(configpath):
     
     ################### DATA SET
     
-    dataset_train_raw = tf.data.TFRecordDataset(params.datapath+"datasets/dataset_wf_train_"+str(datasetid)+".tfrecords")
-    dataset_valid_raw = tf.data.TFRecordDataset(params.datapath+"datasets/dataset_wf_valid_"+str(datasetid)+".tfrecords")
+    dataset_train_raw = tf.data.TFRecordDataset(params.datapath+"datasets/dataset_train_"+str(datasetid)+".tfrecords")
+    dataset_valid_raw = tf.data.TFRecordDataset(params.datapath+"datasets/dataset_valid_"+str(datasetid)+".tfrecords")
 
     dataset_train_parsed = dataset_train_raw.map(lambda x: trainingdata.tfrecord_parse_function(x, npad,params), num_parallel_calls=8)
     dataset_valid_parsed = dataset_valid_raw.map(lambda x: trainingdata.tfrecord_parse_function(x, npad,params), num_parallel_calls=8)
