@@ -59,7 +59,7 @@ class EstimatorNet():
         # 256
 
         #outputs = layers.Conv2D(1, (1, 1), activation='sigmoid')(decoder0)
-        outputs = layers.Conv2D(channels_out, (1, 1), activation='linear')(decoder0)
+        outputs = layers.Conv2D(channels_out, (1, 1), activation='sigmoid')(decoder0)
 
         return inputs,outputs
 

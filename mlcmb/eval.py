@@ -9,7 +9,7 @@ import utilities
 import networks
 
 
-#run e.g.: python eval.py ~/mlcmb_secondaries/mlcmb/config_master.ini
+#run e.g.: python eval.py ~/mlcmb_secondaries/mlcmb/configs/config_master.ini
 
 
  
@@ -26,7 +26,7 @@ def eval_training(configpath):
     npad = params.npad
     img_shape = (params.imgsizepix+2*npad, params.imgsizepix+2*npad, channels_in)
 
-    wienernet = networks.WienerNet(params)
+    wienernet = networks.EstimatorNet(params)
     inputs,outputs = getattr(wienernet,params.network)(img_shape,channels_out) 
     
     model = models.Model(inputs=[inputs], outputs=[outputs])
@@ -37,11 +37,11 @@ def eval_training(configpath):
     
     data_test = np.load(params.datapath+"/datasets/dataset_test_"+str(datasetid)+".npy")
 
-    if params.wf_mode=="vrad_kszgal":
+    if params.estimator_mode=="vrad_kszgal":
         images_test = data_test[:,:,:,[0,1]]   
 
     #pad the images
-    images_test = utilities.periodic_padding(images_test,npad)
+    #images_test = utilities.periodic_padding(images_test,npad)
 
     #renormalize images before analysing
     images_test[...,0] *= params.map_rescale_factor
@@ -52,10 +52,8 @@ def eval_training(configpath):
 
     #ell filter the maps
     #result[:,:,:,0] = utilities.ell_filter_maps(result[:,:,:,0], params.nx, params.dx, params.lmax, lmin=2)
-    #result[:,:,:,1] = utilities.ell_filter_maps(result[:,:,:,1], params.nx, params.dx, params.lmax, lmin=2)
     #undo renormalisation
-    result[:,:,:,0] = (result[:,:,:,0])/params.map_rescale_factor 
-    result[:,:,:,1] = (result[:,:,:,1])/params.map_rescale_factor    
+    result[:,:,:,0] = (result[:,:,:,0])/params.map_rescale_factor     
 
     #save
     fname = params.folder_path_run+"dataset_test_"+str(datasetid)+"_results.npy"

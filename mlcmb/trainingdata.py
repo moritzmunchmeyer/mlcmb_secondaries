@@ -52,7 +52,7 @@ def make_dataset(configpath):
         return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
     
-    dataset_test = np.zeros( (nsims_test,nside,nside,16) ) 
+    dataset_test = np.zeros( (nsims_test,nside,nside,3) ) 
 
     with tf.python_io.TFRecordWriter(filename_train) as writer_train, tf.python_io.TFRecordWriter(filename_valid) as writer_valid:
         fpath_base = params.datapath + 'websky_jim/v1/training/'
