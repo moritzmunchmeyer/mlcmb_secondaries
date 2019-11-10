@@ -25,37 +25,37 @@ class EstimatorNet():
         inputs = layers.Input(shape=img_shape)
         # 256
 
-        encoder0_pool, encoder0 = encoder_block_unet(inputs, int(32/filterdivisor))
+        encoder0_pool, encoder0 = self.encoder_block_unet(inputs, int(32/filterdivisor))
         # 128
 
-        encoder1_pool, encoder1 = encoder_block_unet(encoder0_pool, int(64/filterdivisor))
+        encoder1_pool, encoder1 = self.encoder_block_unet(encoder0_pool, int(64/filterdivisor))
         # 64
 
-        encoder2_pool, encoder2 = encoder_block_unet(encoder1_pool, int(128/filterdivisor))
+        encoder2_pool, encoder2 = self.encoder_block_unet(encoder1_pool, int(128/filterdivisor))
         # 32
 
-        encoder3_pool, encoder3 = encoder_block_unet(encoder2_pool, int(256/filterdivisor))
+        encoder3_pool, encoder3 = self.encoder_block_unet(encoder2_pool, int(256/filterdivisor))
         # 16
 
-        encoder4_pool, encoder4 = encoder_block_unet(encoder3_pool, int(512/filterdivisor))
+        encoder4_pool, encoder4 = self.encoder_block_unet(encoder3_pool, int(512/filterdivisor))
         # 8
 
-        center = conv_block_unet(encoder4_pool, int(1024/filterdivisor))
+        center = self.conv_block_unet(encoder4_pool, int(1024/filterdivisor))
         # center
 
-        decoder4 = decoder_block_unet(center, encoder4, int(512/filterdivisor))
+        decoder4 = self.decoder_block_unet(center, encoder4, int(512/filterdivisor))
         # 16
 
-        decoder3 = decoder_block_unet(decoder4, encoder3, int(256/filterdivisor))
+        decoder3 = self.decoder_block_unet(decoder4, encoder3, int(256/filterdivisor))
         # 32
 
-        decoder2 = decoder_block_unet(decoder3, encoder2, int(128/filterdivisor))
+        decoder2 = self.decoder_block_unet(decoder3, encoder2, int(128/filterdivisor))
         # 64
 
-        decoder1 = decoder_block_unet(decoder2, encoder1, int(64/filterdivisor))
+        decoder1 = self.decoder_block_unet(decoder2, encoder1, int(64/filterdivisor))
         # 128
 
-        decoder0 = decoder_block_unet(decoder1, encoder0, int(32/filterdivisor))
+        decoder0 = self.decoder_block_unet(decoder1, encoder0, int(32/filterdivisor))
         # 256
 
         #outputs = layers.Conv2D(1, (1, 1), activation='sigmoid')(decoder0)
@@ -75,7 +75,7 @@ class EstimatorNet():
         return encoder
 
     def encoder_block_unet(self,input_tensor, num_filters):
-        encoder = conv_block(input_tensor, num_filters)
+        encoder = self.conv_block_unet(input_tensor, num_filters)
         encoder_pool = layers.MaxPooling2D((2, 2), strides=(2, 2))(encoder)
         return encoder_pool, encoder
 

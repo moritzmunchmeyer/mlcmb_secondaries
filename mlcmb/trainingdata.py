@@ -7,7 +7,7 @@ from shutil import copyfile
 import config
 import utilities
 
-#run e.g.: python trainingdata.py ~/mlcmb_secondaries/mlcmb/config_master.ini
+#run e.g.: python trainingdata.py ~/mlcmb_secondaries/mlcmb/configs/config_master.ini
 
 ##################### make data set
 #creates tfrecords for training and validation, and a numpy array for test
@@ -55,13 +55,12 @@ def make_dataset(configpath):
     dataset_test = np.zeros( (nsims_test,nside,nside,16) ) 
 
     with tf.python_io.TFRecordWriter(filename_train) as writer_train, tf.python_io.TFRecordWriter(filename_valid) as writer_valid:
-
-        for map_id in range(nsims):
-            print ("map", map_id)
-
-            tcmb =  #T cmb
-            rhogal =  #T obs
-            vrad =  #E sky        
+        fpath_base = params.datapath + 'websky_jim/v1/training/'
+        for map_id in range(nsims_train+nsims_valid):
+            print ("training map", map_id)
+            tcmb = np.load(fpath_base+str(map_id)+'-Obs_T-patch.npy') #T cmb
+            rhogal = np.load(fpath_base+str(map_id)+'-rho-patch.npy') #rho gal
+            vrad = np.load(fpath_base+str(map_id)+'-vrad-patch.npy') #vrad     
 
             #-----save record and test data
 
@@ -78,17 +77,15 @@ def make_dataset(configpath):
                 writer_train.write(example.SerializeToString())
             if map_id>=nsims_train and map_id<(nsims_train+nsims_valid):
                 writer_valid.write(example.SerializeToString()) 
-
-            #save test data
-            if map_id>=nsims_train+nsims_valid:
-                testmap_id=map_id-nsims_valid-nsims_train
-
-                dataset_test[testmap_id,:,:,0] = tcmb
-                dataset_test[testmap_id,:,:,1] = rhogal
-                dataset_test[testmap_id,:,:,2] = vrad
        
     #save training set
     if nsims_test>0:
+        fpath_base = params.datapath + 'websky_jim/v1/testing/'
+        for testmap_id in range(nsims_test):   
+            print ("testing map", testmap_id)
+            dataset_test[testmap_id,:,:,0] = np.load(fpath_base+str(testmap_id)+'-Obs_T-patch.npy') #T cmb
+            dataset_test[testmap_id,:,:,1] = np.load(fpath_base+str(testmap_id)+'-rho-patch.npy') #rho gal
+            dataset_test[testmap_id,:,:,2] = np.load(fpath_base+str(testmap_id)+'-vrad-patch.npy') #vrad
         np.save(params.datapath+"datasets/dataset_test_"+str(datasetid)+".npy",dataset_test)
 
     #save config for this data set
@@ -108,7 +105,7 @@ def make_dataset(configpath):
 #Many input pipelines extract tf.train.Example protocol buffer messages from a TFRecord-format file (written, for example, using tf.python_io.TFRecordWriter). Each tf.train.Example record contains one or more "features", and the input pipeline typically converts these features into tensors.
 
 def tfrecord_parse_function(proto,npad,params):
-    if params.wf_mode == "T":
+    if params.estimator_mode == "vrad_kszgal":
         # define your tfrecord again. Remember that you saved your image as a string.
         keys_to_features = {'tcmb': tf.FixedLenFeature([], tf.string),
                             'rhogal': tf.FixedLenFeature([], tf.string),

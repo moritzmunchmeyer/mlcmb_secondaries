@@ -33,8 +33,8 @@ class Parameters():
         self.nx = Config.getint("Map", "nx") #512, 128 
         self.imgsizepix = self.nx #TODO: remove duplicate
 
-        self.mask = (scipy.ndimage.imread(mlcmbpath+"data/"+Config.get("Map", "fname_mask"))[:,:,0]/255).astype(np.float)  
-        #mask = np.ones( (nx, nx) ) 
+        #self.mask = (scipy.ndimage.imread(mlcmbpath+"data/"+Config.get("Map", "fname_mask"))[:,:,0]/255).astype(np.float)  
+        self.mask = np.ones( (self.nx, self.nx) ) 
 
         self.dx = Config.getfloat("Map", "sidelength_deg")*d2r / float(self.nx) 
 
@@ -74,12 +74,8 @@ class Parameters():
         self.network_actifunc = Config.get("NeuralNetwork", "actifunc")  
         
         #unmutable:
-        if self.estimator_mode=="T":
+        if self.estimator_mode=="vrad_kszgal":
             self.estimator_signal_type = 'cl_tt'
             self.map_rescale_factor = self.map_rescale_factor_t
             self.noise_pix = self.noise_pix_t
-        if self.estimator_mode=="QU":
-            self.estimator_signal_type = 'cl_ee'
-            self.map_rescale_factor = self.map_rescale_factor_pol
-            self.noise_pix = self.noise_pix_pol    
 

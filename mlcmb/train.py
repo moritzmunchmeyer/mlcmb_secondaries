@@ -14,7 +14,7 @@ import networks
 import losses
 import trainingdata
 
-#run e.g.: python train.py ~/mlcmb_secondaries/mlcmb/config_master.ini
+#run e.g.: python train.py ~/mlcmb_secondaries/mlcmb/configs/config_master.ini
 
 
 def run_training(configpath):
@@ -47,13 +47,13 @@ def run_training(configpath):
 
     ################### NETWORK
     
-    estimatornet = networks.estimatorNet(params)
+    estimatornet = networks.EstimatorNet(params)
     inputs,outputs = getattr(estimatornet,params.network)(img_shape,channels_out) 
     
     lossfunctions = losses.Lossfunctions(params)
     
-    if params.loss_mode == "mse":
-        lossfunc = lossfunctions.mean_squared_error
+    if params.loss_mode == "pixelMSE_unfiltered":
+        lossfunc = lossfunctions.loss_pixelMSE_unfiltered
         lossfuncname = 'loss_pixelMSE_unfiltered' 
         
     model = models.Model(inputs=[inputs], outputs=[outputs])
