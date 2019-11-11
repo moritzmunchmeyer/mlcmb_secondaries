@@ -31,6 +31,7 @@ def run_training(configpath):
         channels_out = 1
 
     npad = params.npad 
+    print ("padding:", npad)
     img_shape = (params.imgsizepix+2*npad, params.imgsizepix+2*npad, channels_in)
     batch_size = params.batch_size #1
     epochs = params.epochs #1000 #5
